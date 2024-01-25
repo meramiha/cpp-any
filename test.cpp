@@ -159,8 +159,6 @@ void my_custom_class_test() {  // this test only make sense with valgrind
 
     B b2 = B(1);
     any a3{std::move(b2)};
-
-
 }
 
 void my_const_test() {
