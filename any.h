@@ -41,7 +41,7 @@ class any {
 
         std::unique_ptr<any_storage_base> get_unique_pointer_to_copy()
             override {
-            return std::make_unique<any_storage_derived<T> >(m_obj);
+            return std::make_unique<any_storage_derived<T>>(m_obj);
         }
 
         ~any_storage_derived() override = default;
@@ -54,14 +54,16 @@ public:
 
     template <typename T>
     explicit any(T value)
-        : m_value(any_storage_derived<T>(value).get_unique_pointer_to_copy()) {
+        : m_value(std::make_unique<any_storage_derived<T>>(
+              any_storage_derived<T>(value))) {
         static_assert(std::is_copy_constructible_v<T>);
     }
 
     template <typename T>
     any &operator=(T value) {
         this->m_value.reset();
-        m_value = any_storage_derived<T>(value).get_unique_pointer_to_copy();
+        m_value = std::make_unique<any_storage_derived<T>>(
+            any_storage_derived<T>(value));
 
         return *this;
     }
@@ -72,6 +74,10 @@ public:
     }
 
     any &operator=(const any &other) {
+        if (this == &other) {
+            return *this;
+        }
+
         this->m_value.reset();
         this->m_value = other.m_value->get_unique_pointer_to_copy();
 
@@ -82,7 +88,7 @@ public:
     }
 
     any &operator=(any &&other) noexcept {
-        m_value = std::move(other.m_value);
+        std::swap(this->m_value, other.m_value);
 
         return *this;
     }
@@ -149,6 +155,7 @@ template <typename T>
 // NOLINTNEXTLINE (cppcoreguidelines-rvalue-reference-param-not-moved)
 T any_cast(any &&object) {
     using raw_T = std::remove_reference_t<T>;
+
     auto ptr = any_cast<raw_T>(&object);
 
     if (ptr == nullptr) {
