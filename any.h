@@ -1,8 +1,10 @@
 #ifndef ANY_H
 #define ANY_H
 
+#include <iostream>
 #include <memory>
 #include <string>
+#include <type_traits>
 #include <typeinfo>
 
 namespace utils {
@@ -41,7 +43,7 @@ class any {
             override {
             return std::make_unique<any_storage_derived<T> >(m_obj);
         }
-        any_storage_derived( any_storage_derived const &other) {
+        any_storage_derived(const any_storage_derived &other) {
         }
 
         ~any_storage_derived() override = default;
@@ -66,12 +68,12 @@ public:
         return *this;
     }
 
-    any(any const &other) {
+    any(const any &other) {
         this->m_value.reset();
         this->m_value = other.m_value->get_unique_pointer_to_copy();
     }
 
-    any &operator=(any const &other) {
+    any &operator=(const any &other) {
         this->m_value.reset();
         this->m_value = other.m_value->get_unique_pointer_to_copy();
 
@@ -90,10 +92,10 @@ public:
     [[nodiscard]] bool empty() const noexcept;
 
     template <typename T>
-    friend T *any_cast(any *object);
+    friend const T *any_cast(const any *object) noexcept;
 
     template <typename T>
-    friend T any_cast(any &object);
+    friend T *any_cast(any *object) noexcept;
 
     ~any() = default;
 };
@@ -103,23 +105,63 @@ public:
     [[nodiscard]] const char *what() const noexcept override;
 };
 
-template <typename T>
-T *any_cast(any *object) {
-    if (object->m_value->get_type() != typeid(T)) {
+template <typename ValueType>
+const ValueType *any_cast(const any *object) noexcept {
+    if (object->m_value->get_type() != typeid(ValueType)) {
         return nullptr;
     }
 
-    return static_cast<T *>(object->m_value->get_pointer());
+    return static_cast<const ValueType *>(object->m_value->get_pointer());
+}
+
+template <typename ValueType>
+ValueType *any_cast(any *object) noexcept {
+    // NOLINTNEXTLINE (cppcoreguidelines-pro-type-const-cast)
+    return const_cast<ValueType *>(
+        any_cast<ValueType>(static_cast<const any *>(object)));
+}
+
+template <typename T>
+T any_cast(const any &object) {
+    std::cerr << "'T any_cast(const any &object)' called\n";
+    using raw_T = std::remove_reference_t<T>;
+
+    auto ptr = any_cast<raw_T>(&object);
+
+    if (ptr == nullptr) {
+        throw bad_any_cast();
+    }
+
+    return static_cast<T>(*ptr);
 }
 
 template <typename T>
 T any_cast(any &object) {
-    if (object.m_value->get_type() != typeid(T)) {
+    std::cerr << "'T any_cast(any &object)' called\n";
+    using raw_T = std::remove_reference_t<T>;
+
+    auto ptr = any_cast<raw_T>(&object);
+
+    if (ptr == nullptr) {
         throw bad_any_cast();
     }
 
-    return *static_cast<T *>(object.m_value->get_pointer());
+    return static_cast<T>(*ptr);
 }
+
+template <typename T>
+T any_cast(any &&object) {
+    std::cerr << "'T any_cast(any &&object)' called\n";
+    using raw_T = std::remove_reference_t<T>;
+    auto ptr = any_cast<raw_T>(&object);
+
+    if (ptr == nullptr) {
+        throw bad_any_cast();
+    }
+
+    return static_cast<T>(*ptr);
+}
+
 }  // namespace utils
 
 #endif  // ANY_H
