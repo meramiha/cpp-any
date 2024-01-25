@@ -191,6 +191,9 @@ int main() {
     any a(5), b(string("6"));
     swap_test(a, b);
 
+    assert(any_cast<std::string>(a) == "6");
+    assert(any_cast<int>(b) == 5);
+
     // my tests
     my_empty_test();
     my_pointer_test();

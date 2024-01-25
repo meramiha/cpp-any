@@ -106,6 +106,8 @@ public:
     template <typename T>
     friend T *any_cast(any *object) noexcept;
 
+    friend inline void swap(any &any_x, any &any_y) noexcept;
+
     ~any() = default;
 };
 
@@ -173,6 +175,10 @@ T any_cast(any &&object) {
     }
 
     return static_cast<T>(*ptr);
+}
+
+inline void swap(any &any_x, any &any_y) noexcept {
+    std::swap(any_x.m_value, any_y.m_value);
 }
 
 }  // namespace utils
