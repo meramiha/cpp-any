@@ -46,7 +46,7 @@ void retrieve_value_test() {
 }
 
 void swap_test(any &a, any &b) {
-    std::swap(a, b);
+    swap(a, b);
 }
 
 void my_empty_test() {
