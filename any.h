@@ -16,7 +16,8 @@ class any {
 
         virtual ~any_storage_base() = default;
 
-        virtual std::type_info const &get_type() = 0;
+        [[nodiscard]] virtual const std::type_info &get_type()
+            const noexcept = 0;
 
         virtual std::unique_ptr<any_storage_base>
         get_unique_pointer_to_copy() = 0;
@@ -31,7 +32,7 @@ class any {
         explicit any_storage_derived(T obj) : m_obj(obj) {
         }
 
-        std::type_info const &get_type() override {
+        [[nodiscard]] const std::type_info &get_type() const noexcept override {
             return typeid(T);
         }
 
@@ -95,6 +96,10 @@ public:
 
     [[nodiscard]] bool empty() const noexcept;
 
+    [[nodiscard]] const std::type_info &get_type() const noexcept {
+        return this->m_value->get_type();
+    }
+
     template <typename T>
     friend const T *any_cast(const any *object) noexcept;
 
@@ -105,13 +110,18 @@ public:
 };
 
 class bad_any_cast final : std::bad_cast {
+    std::string message;
+
 public:
+    bad_any_cast(const std::type_info &from_type,
+                 const std::type_info &to_type);
+
     [[nodiscard]] const char *what() const noexcept override;
 };
 
 template <typename ValueType>
 const ValueType *any_cast(const any *object) noexcept {
-    if (object->m_value->get_type() != typeid(ValueType)) {
+    if (object->get_type() != typeid(ValueType)) {
         return nullptr;
     }
 
@@ -132,7 +142,7 @@ T any_cast(const any &object) {
     auto ptr = any_cast<raw_T>(&object);
 
     if (ptr == nullptr) {
-        throw bad_any_cast();
+        throw bad_any_cast(object.get_type(), typeid(T));
     }
 
     return static_cast<T>(*ptr);
@@ -145,7 +155,7 @@ T any_cast(any &object) {
     auto ptr = any_cast<raw_T>(&object);
 
     if (ptr == nullptr) {
-        throw bad_any_cast();
+        throw bad_any_cast(object.get_type(), typeid(T));
     }
 
     return static_cast<T>(*ptr);
@@ -159,7 +169,7 @@ T any_cast(any &&object) {
     auto ptr = any_cast<raw_T>(&object);
 
     if (ptr == nullptr) {
-        throw bad_any_cast();
+        throw bad_any_cast(object.get_type(), typeid(T));
     }
 
     return static_cast<T>(*ptr);
