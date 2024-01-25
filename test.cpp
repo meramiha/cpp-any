@@ -65,7 +65,7 @@ void my_pointer_test() {
 
     any a(ptr);
 
-    int *h = new int();
+    int *h = new int(1);
 
     any b(h);
 
@@ -109,32 +109,58 @@ void my_non_trivially_copyable_test() {
 
 void my_custom_class_test() {  // this test only make sense with valgrind
     class B {
-        // char *ptr;
         int *ptr = nullptr;
 
     public:
-        B() {
-            // ptr = new char[1000];
-            ptr = new int;
+        explicit B(const int value) : ptr(new int(value)) {
         }
 
-        B(B const &other) {
-            ptr = new int;
-            std::memcpy(ptr, other.ptr, sizeof(int));
+        B &operator=(const B &other) {
+            std::cerr << "B &operator=(const B &other) called" << std::endl;
+            if (this == &other) {
+                return *this;
+            }
+            delete ptr;
+            ptr = new int(*other.ptr);
+            return *this;
+        }
+
+        B &operator=(B &&other) noexcept {
+            std::cerr << "B &operator=(B &&other) called" << std::endl;
+            std::swap(this->ptr, other.ptr);
+            return *this;
+        }
+
+        B(B const &other) : ptr(new int(*other.ptr)) {
+            std::cerr << "B(B const &other) called" << std::endl;
+        }
+
+        B(B &&other) noexcept : ptr(other.ptr) {
+            std::cerr << "B(B &&other) called" << std::endl;
+            other.ptr = nullptr;
         }
 
         ~B() {
             delete ptr;
 
-            std::cerr << "Destructor called" << std::endl;
+            std::cerr << "~B() called" << std::endl;
         }
     };
 
     static_assert(std::is_copy_constructible_v<B>);
 
-    any a{B()};
+    any a{B(0)};
 
     a = 1;
+
+    B b = B(1);
+
+    any a2{b};
+
+    B b2 = B(1);
+    any a3{std::move(b2)};
+
+
 }
 
 void my_const_test() {
@@ -162,8 +188,6 @@ void my_const_test() {
 }
 
 int main() {
-
-
     contruct_test();
     retrieve_value_test();
     any a(5), b(string("6"));
@@ -177,7 +201,6 @@ int main() {
     my_custom_class_test();
 
     my_const_test();
-
 
     return 0;
 }
