@@ -43,8 +43,6 @@ class any {
             override {
             return std::make_unique<any_storage_derived<T> >(m_obj);
         }
-        any_storage_derived(const any_storage_derived &other) {
-        }
 
         ~any_storage_derived() override = default;
     };
@@ -123,7 +121,6 @@ ValueType *any_cast(any *object) noexcept {
 
 template <typename T>
 T any_cast(const any &object) {
-    std::cerr << "'T any_cast(const any &object)' called\n";
     using raw_T = std::remove_reference_t<T>;
 
     auto ptr = any_cast<raw_T>(&object);
@@ -137,7 +134,6 @@ T any_cast(const any &object) {
 
 template <typename T>
 T any_cast(any &object) {
-    std::cerr << "'T any_cast(any &object)' called\n";
     using raw_T = std::remove_reference_t<T>;
 
     auto ptr = any_cast<raw_T>(&object);
@@ -150,8 +146,8 @@ T any_cast(any &object) {
 }
 
 template <typename T>
+// NOLINTNEXTLINE (cppcoreguidelines-rvalue-reference-param-not-moved)
 T any_cast(any &&object) {
-    std::cerr << "'T any_cast(any &&object)' called\n";
     using raw_T = std::remove_reference_t<T>;
     auto ptr = any_cast<raw_T>(&object);
 
